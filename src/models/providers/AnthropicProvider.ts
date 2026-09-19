@@ -13,7 +13,7 @@ export class AnthropicProvider implements ModelProvider {
   constructor() {
     this.apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY ?? '';
     this.baseUrl = (import.meta.env.VITE_ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com').replace(/\/$/, '');
-    this.model = import.meta.env.VITE_ANTHROPIC_MODEL ?? 'claude-3-5-haiku-latest';
+    this.model = import.meta.env.VITE_ANTHROPIC_MODEL ?? 'claude-haiku-4-5-20251001';
     this.version = import.meta.env.VITE_ANTHROPIC_VERSION ?? '2023-06-01';
     this.viaProxy = this.baseUrl.startsWith('/');
   }
