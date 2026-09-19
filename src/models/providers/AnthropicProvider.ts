@@ -8,17 +8,21 @@ export class AnthropicProvider implements ModelProvider {
   private baseUrl: string;
   private model: string;
   private version: string;
+  private viaProxy: boolean;
 
   constructor() {
     this.apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY ?? '';
     this.baseUrl = (import.meta.env.VITE_ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com').replace(/\/$/, '');
     this.model = import.meta.env.VITE_ANTHROPIC_MODEL ?? 'claude-3-5-haiku-latest';
     this.version = import.meta.env.VITE_ANTHROPIC_VERSION ?? '2023-06-01';
+    this.viaProxy = this.baseUrl.startsWith('/');
   }
 
   async chat(request: ModelChatRequest): Promise<ModelChatResponse> {
-    if (!this.apiKey) {
-      throw new Error('Missing VITE_ANTHROPIC_API_KEY. Set it in .env or switch to Mock.');
+    if (!this.viaProxy && !this.apiKey) {
+      throw new Error(
+        'Missing Anthropic key. For local demos set ANTHROPIC_API_KEY in .env and VITE_ANTHROPIC_BASE_URL=/anthropic (Vite proxy). Or set VITE_ANTHROPIC_API_KEY for direct calls.',
+      );
     }
 
     const system = request.messages
@@ -29,15 +33,18 @@ export class AnthropicProvider implements ModelProvider {
       .filter((m) => m.role !== 'system')
       .map((m) => ({ role: m.role, content: m.content }));
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'anthropic-version': this.version,
+    };
+    if (!this.viaProxy) {
+      headers['x-api-key'] = this.apiKey;
+      headers['anthropic-dangerous-direct-browser-access'] = 'true';
+    }
+
     const res = await fetch(`${this.baseUrl}/v1/messages`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': this.version,
-        // Browser demos often need this when hitting Anthropic from the client:
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
+      headers,
       body: JSON.stringify({
         model: this.model,
         max_tokens: 1024,
